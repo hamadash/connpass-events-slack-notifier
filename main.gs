@@ -9,6 +9,7 @@ const notifyEventsToSlack = () => {
   const eventsBySeries = fetchConnpassEventsBySeries({
     yearMonth: getCurrentYearMonth(),
     fromDate: new Date(),
+    // TODO: yearMonth で月を絞ってしまっているので、月末のようなときだと(月をまたぐときだと)月末までしか取れない
     toDate: oneWeekLaterDate,
   });
   if (!eventsBySeries.length) return;
