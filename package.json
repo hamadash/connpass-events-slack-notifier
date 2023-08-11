@@ -1,0 +1,24 @@
+{
+  "name": "connpass-events-slack-notifier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamadash/connpass-events-slack-notifier.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hamadash/connpass-events-slack-notifier/issues"
+  },
+  "homepage": "https://github.com/hamadash/connpass-events-slack-notifier#readme",
+  "dependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.66"
+  }
+}
