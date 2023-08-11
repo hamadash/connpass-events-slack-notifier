@@ -1,5 +1,3 @@
-// ref. https://connpass.com/about/api/
-
 const SERIESES_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('serieses');
 // わざわざシートに書かかなくてもいいけど、GitHub に公開する前提なので
 const SLACK_WEBHOOK_URL = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('slack_webhook_url').getRange('A1').getValue();
