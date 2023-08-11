@@ -1,4 +1,4 @@
-const SERIESES_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('serieses');
+const SERIES_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('series');
 // わざわざシートに書かかなくてもいいけど、GitHub に公開する前提なので
 const SLACK_WEBHOOK_URL = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('slack_webhook_url').getRange('A1').getValue();
 
@@ -33,7 +33,7 @@ const fetchConnpassEventsBySeries = (filterParams) => {
 };
 
 const getSeriesIds = () => {
-  const range = SERIESES_SHEET.getRange(2, 1, SERIESES_SHEET.getLastRow()-1);
+  const range = SERIES_SHEET.getRange(2, 1, SERIES_SHEET.getLastRow()-1);
   return range.getValues().flat();
 };
 
