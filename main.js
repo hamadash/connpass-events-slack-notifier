@@ -3,11 +3,13 @@ const CONNPASS_SERIES_IDS = PropertiesService.getScriptProperties().getProperty(
 const CONNPASS_API_BASE_URL = 'https://connpass.com/api/v1/event/';
 
 const notifyEventsToSlack = () => {
+  var today = new Date();
   const oneWeekLaterDate = getOneWeekLaterDate();
-  const eventsBySeries = fetchConnpassEventsBySeries({
-    yearMonth: getCurrentYearMonth(),
-    fromDate: new Date(),
-    // TODO: yearMonth で月を絞ってしまっているので、月末のようなときだと(月をまたぐときだと)月末までしか取れない
+  // NOTE: today の年月だけだと、月末などの場合にイベントが少なくなってしまうため、oneWeekLaterDate が翌月だったら翌月のイベントも取得できるようにしている
+  const yearMonths = [...new Set([getYearMonth(today), getYearMonth(oneWeekLaterDate)])];
+  const eventsBySeries = fetchEventsBySeries({
+    yearMonths: yearMonths,
+    fromDate: today,
     toDate: oneWeekLaterDate,
   });
   if (!eventsBySeries.length) return;
@@ -24,39 +26,9 @@ const notifyEventsToSlack = () => {
   });
 };
 
-const fetchConnpassEventsBySeries = (filterParams) => {
-  return CONNPASS_SERIES_IDS.map((seriesId) => {
-    return fetchConnpassEvents(seriesId, filterParams);
-  }).filter(obj => Object.keys(obj).length && obj.events.length);
-};
-
-const fetchConnpassEvents = (seriesId, filterParams) => {
-  Utilities.sleep(5000);
-
-  const response = UrlFetchApp.fetch(constructRequestUrl({ yearMonth: filterParams.yearMonth, seriesId: seriesId }));
-  const json = JSON.parse(response.getContentText());
-  if (json.events.length === 0) return {};
-
-  let seriesTitle;
-  const filteredEvents = filterEvents(json.events, filterParams);
-  const events = filteredEvents.map((event) => {
-    seriesTitle = event.series.title;
-    return {
-      seriesTitle: event.series.title,
-      title: event.title,
-      url: event.event_url,
-      startedAt: event.started_at,
-      endedAt: event.ended_at
-    };
-  });
-
-  return { id: seriesId, title: seriesTitle, events };
-};
-
-function getCurrentYearMonth() {
-  var today = new Date();
-  var year = today.getFullYear();
-  var month = today.getMonth() + 1;
+function getYearMonth(date) {
+  var year = date.getFullYear();
+  var month = date.getMonth() + 1;
 
   if (month < 10) {
     month = '0' + month;
@@ -71,6 +43,37 @@ const getOneWeekLaterDate = () => {
   oneWeekLater.setDate(oneWeekLater.getDate() + 7);
 
   return oneWeekLater;
+};
+
+const fetchEventsBySeries = (params) => {
+  const eventsBySeriesAndYearMonth = CONNPASS_SERIES_IDS.flatMap((seriesId) => {
+    return params.yearMonths.map((yearMonth) => {
+      return fetchEvents(seriesId, { ...params, yearMonth });
+    });
+  }).filter(obj => Object.keys(obj).length && obj.events.length);
+  return mergeEventsBySeries(eventsBySeriesAndYearMonth);
+};
+
+const fetchEvents = (seriesId, filterParams) => {
+  Utilities.sleep(5000);
+
+  const response = UrlFetchApp.fetch(constructRequestUrl({ yearMonth: filterParams.yearMonth, seriesId: seriesId }));
+  const json = JSON.parse(response.getContentText());
+  if (json.events.length === 0) return {};
+
+  let seriesTitle;
+  const filteredEvents = filterEvents(json.events, filterParams);
+  const events = filteredEvents.map((event) => {
+    seriesTitle = event.series.title;
+    return {
+      title: event.title,
+      url: event.event_url,
+      startedAt: event.started_at,
+      endedAt: event.ended_at
+    };
+  });
+
+  return { id: seriesId, title: seriesTitle, events };
 };
 
 // NOTE: API のクエリでは期間指定ができないため
@@ -95,7 +98,21 @@ const filterEvents = (events, filterParams) => {
 };
 
 const constructRequestUrl = (params) => {
-  return `${CONNPASS_API_BASE_URL}?ym=${params.yearMonth}&series_id=${params.seriesId}`;
+  return `${CONNPASS_API_BASE_URL}?ym=${params.yearMonth}&series_id=${params.seriesId}&order=2`;
+};
+
+const mergeEventsBySeries = (eventsBySeriesAndYearMonth) => {
+  return eventsBySeriesAndYearMonth.reduce((result, currentSeries) => {
+    const existingSeries = result.find(series => series.id === currentSeries.id);
+
+    if (existingSeries) {
+      existingSeries.events = [...new Set([...existingSeries.events, ...currentSeries.events])];
+    } else {
+      result.push({ id: currentSeries.id, title: currentSeries.title, events: [...currentSeries.events] });
+    }
+
+    return result;
+  }, []);
 };
 
 const constructSlackWebhookPayload = (series) => {
