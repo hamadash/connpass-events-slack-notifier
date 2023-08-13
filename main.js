@@ -1,7 +1,5 @@
-const SERIES_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('series');
-// わざわざシートに書かかなくてもいいけど、GitHub に公開する前提なので
-const SLACK_WEBHOOK_URL = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('slack_webhook_url').getRange('A1').getValue();
-
+const SLACK_WEBHOOK_URL = PropertiesService.getScriptProperties().getProperty('SLACK_WEBHOOK_URL');
+const CONNPASS_SERIES_IDS = PropertiesService.getScriptProperties().getProperty('CONNPASS_SERIES_IDS').split(',');
 const CONNPASS_API_BASE_URL = 'https://connpass.com/api/v1/event/';
 
 const notifyEventsToSlack = () => {
@@ -27,15 +25,9 @@ const notifyEventsToSlack = () => {
 };
 
 const fetchConnpassEventsBySeries = (filterParams) => {
-  const ids = getSeriesIds();
-  return getSeriesIds().map((seriesId) => {
+  return CONNPASS_SERIES_IDS.map((seriesId) => {
     return fetchConnpassEvents(seriesId, filterParams);
   }).filter(obj => Object.keys(obj).length && obj.events.length);
-};
-
-const getSeriesIds = () => {
-  const range = SERIES_SHEET.getRange(2, 1, SERIES_SHEET.getLastRow()-1);
-  return range.getValues().flat();
 };
 
 const fetchConnpassEvents = (seriesId, filterParams) => {
